@@ -1,0 +1,100 @@
+---
+title: "R Notebook"
+Author: "Omar Elsayd"
+output: html_document
+runtime: shiny
+---
+
+```{r data_setup}
+walmart <- read.csv("WMT.csv", header = T) #read the csv file where you can find the stock data
+walmart.df <- data.frame(walmart) #put the data in data fram
+head(walmart.df) # print the first 6
+tail(walmart.df) # print the last 6
+
+# The data structure
+str(walmart.df)
+names(walmart.df)
+class(walmart.df)
+summary(walmart.df)
+
+# Check for missing values
+sum(is.na(walmart.df))
+#now we check if there are any missing data. Since there is no missing data
+
+# Calculate the correlation between all variables
+
+cor(walmart.df[c(2:6)])
+#Also in here we are just computing the
+#correlation between column 2 till 6 since column one has no numerical values
+
+```
+
+
+### Prepare training and testing sets
+
+```{r split_data}
+library(caTools)
+set.seed(123)  # to reproduce the sample
+sample <- sample.split(walmart.df$Volume, SplitRatio = 0.8) # We are defining a sample in here and then we will split the data into training and testing sets. The ratio will be 80% training and 20% testing
+walmart.df.train <- subset(walmart.df, sample==TRUE)#basically what is happening in here is we are setting the train set
+walmart.df.test <- subset(walmart.df, sample==FALSE)#test set
+head(walmart.df.train)#print first 6 rows
+tail(walmart.df.train)#print last 6 rows
+
+```
+
+### Build the multiple linear regression model
+
+```{r model}
+VolumeModel <- lm(Volume ~ Open + High + Low + Close + Adj.Close, data = walmart.df.train) #printing linear regression model for volume
+summary(VolumeModel)
+```
+
+
+### Improve the model using only significant variables
+
+```{r improved_model}
+# Choose only variables that has 3 stars
+VolumeModel.significantVars <- lm(Volume ~ High + Low + Close, data = walmart.df.train)
+VolumeModel.significantVars
+summary(VolumeModel.significantVars)
+```
+
+
+### Regression output intepretation
+
+
+```{r interpretation}
+# The variables used in the model
+names(VolumeModel.significantVars)
+# The number of fitted values in the model
+length(VolumeModel.significantVars$fitted.values)
+
+```
+### residuals
+
+
+
+```{r residuals}
+# The fitted values by the training set
+predicted.train <- VolumeModel.significantVars$fitted.values
+head(predicted.train)
+predicted.train.df <- data.frame(predicted.train)
+# Calculate residual values
+predicted.train.df.residuals <- VolumeModel.significantVars$residuals
+head(predicted.train.df.residuals)
+```
+
+### predictions
+
+```{r predictions}
+predicted.test <- predict(VolumeModel.significantVars, newdata = walmart.df.train)
+head(predicted.test,10)
+predicted.test.df <- data.frame(predicted.test)
+# Plot actual values vs predicted values
+plot(walmart.df.train$Volume, col="black", type="l", lty=2, main = "Actual vs Predicted Values")
+lines(predicted.test.df, col="red", type="l", lty=3)
+```
+from the data it looks like the volume of the stock prediction is going to be between 6586287 lowest and 16383699 highest. also from the chat. what is in black is the the actual value from the training set and what is in red is the prediction value. as we see, at some point when the value of the stock was between $0 and $50, the prediction of the volume was low but on reality, the volume of the s   tock was high. otherwise, the prediction is pretty close to the actual data based on the train set
+
+
